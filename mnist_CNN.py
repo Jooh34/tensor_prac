@@ -88,9 +88,24 @@ with tf.Session() as sess:
                 X: x_train, Y: y_train, p_keep_conv: 0.8, p_keep_hidden: 0.5})
             print("step %d, training accuracy %g" % (i, train_accuracy))
 
-    x_test = mnist.test.images.reshape(-1,28,28,1)
-    y_test = mnist.test.labels
-    print("test accuracy %g" % accuracy.eval(feed_dict={
-        X: x_test, Y: y_test, p_keep_conv: 1.0, p_keep_hidden: 1.0}))
+    # ResourceExhaustedError를 피하기 위해 batch 사용
+
+    batch_size = 100
+    test_size = mnist.test.num_examples
+    accuracy_stack = 0
+    cycle = int(test_size/batch_size)
+    for i in range(cycle):
+        batch = mnist.test.next_batch(100)
+        x_test = batch[0].reshape(-1,28,28,1)
+        y_test = batch[1]
+
+        accuracy_mean = accuracy.eval(feed_dict={
+        X: x_test, Y: y_test, p_keep_conv: 1.0, p_keep_hidden: 1.0})
+
+        accuracy_stack = accuracy_stack + accuracy_mean
+
+    print("test accuracy %g" % (accuracy_stack/cycle))
+
+    ###
 
 print("running time : %s seconds" %(time.time() - start_time))
